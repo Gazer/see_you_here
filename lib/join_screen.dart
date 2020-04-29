@@ -3,6 +3,17 @@ import 'package:see_you_here_app/maps_screen.dart';
 import 'package:uuid/uuid.dart';
 
 class JoinScreen extends StatefulWidget {
+
+  static Route route(String userId) {
+    return MaterialPageRoute(
+      builder: (_) => JoinScreen(userId: userId),
+    );
+  }
+
+  const JoinScreen({Key key, this.userId}) : super(key: key);
+
+  final String userId;
+
   @override
   _JoinScreenState createState() => _JoinScreenState();
 }
@@ -47,7 +58,7 @@ class _JoinScreenState extends State<JoinScreen> {
             child: Text("Go!"),
             onPressed: () {
               Navigator.of(context).push(
-                MapsScreen.route(Uuid().v1(), partyNumberController.text)
+                MapsScreen.route(widget.userId, partyNumberController.text)
               );
             },
           )

@@ -7,6 +7,16 @@ import 'package:uuid/uuid.dart';
 import 'maps_screen.dart';
 
 class CreatePartyScreen extends StatefulWidget {
+  static Route route(String userId) {
+    return MaterialPageRoute(
+      builder: (_) => CreatePartyScreen(userId: userId),
+    );
+  }
+
+  const CreatePartyScreen({Key key, this.userId}) : super(key: key);
+
+  final String userId;
+
   @override
   _CreatePartyScreenState createState() => _CreatePartyScreenState();
 }
@@ -80,7 +90,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
             child: FloatingActionButton(
               onPressed: () async {
                 // UserId
-                var userId = Uuid().v1();
+                var userId = widget.userId;
 
                 // Party Number
                 var partyNumber = _calculatePartyNumber(userId, target);
