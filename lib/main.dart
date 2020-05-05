@@ -31,15 +31,28 @@ class _LoginScreenState extends State<LoginScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   FirebaseUser _currentUser;
 
-  Future<FirebaseUser> _handleSignIn() async {
+  @override
+  void initState() {
+    super.initState();
+
+    FirebaseAuth.instance.currentUser().then(
+          (u) => setState(() => _currentUser = u),
+    );
+  }
+
+  Future<AuthCredential> _authWithGoogle() async {
     final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
     final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
-    final AuthCredential credential = GoogleAuthProvider.getCredential(
+    return GoogleAuthProvider.getCredential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
+  }
+
+  Future<FirebaseUser> _handleSignIn() async {
+    final AuthCredential credential = await _authWithGoogle();
 
     final FirebaseUser user =
         (await _auth.signInWithCredential(credential)).user;
@@ -55,33 +68,83 @@ class _LoginScreenState extends State<LoginScreen> {
     }).catchError((e) => print(e));
   }
 
+  _doAnonLogin() async {
+    var result = await FirebaseAuth.instance.signInAnonymously();
+    if (result != null) {
+      setState(() {
+        _currentUser = result.user;
+      });
+      print(_currentUser.displayName);
+    }
+  }
+
+  _linkGoogleAccount() async {
+    var credentials = await _authWithGoogle();
+    if (credentials != null) {
+      var result = await _currentUser.linkWithCredential(credentials);
+      if (result != null) {
+        setState(() {
+          _currentUser = result.user;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _currentUser == null ? Center(
-        child: RaisedButton(
-          onPressed: _doLogin,
-          child: Text("Sign in with Google"),
-        )
-      ) : Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            RaisedButton(
-              onPressed: () {
-                Navigator.of(context).push(JoinScreen.route(_currentUser.uid));
-              },
-              child: Text("Ir a una Fiesta"),
+      body: _currentUser == null
+          ? Center(
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                RaisedButton(
+                  onPressed: _doLogin,
+                  child: Text("Entrar con Google"),
+                ),
+                RaisedButton(
+                  onPressed: _doAnonLogin,
+                  child: Text("Entrar como Anónimo"),
+                ),
+              ],
+            ))
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  RaisedButton(
+                    onPressed: () {
+                      Navigator.of(context)
+                          .push(JoinScreen.route(_currentUser.uid));
+                    },
+                    child: Text("Ir a una Fiesta"),
+                  ),
+                  RaisedButton(
+                    onPressed: () {
+                      Navigator.of(context)
+                          .push(CreatePartyScreen.route(_currentUser.uid));
+                    },
+                    child: Text("Crear Fiesta"),
+                  ),
+                  if (_currentUser.isAnonymous)
+                    RaisedButton(
+                      onPressed: () {
+                        _linkGoogleAccount();
+                      },
+                      child: Text("Agregar Cuenta de Google"),
+                    ),
+                  RaisedButton(
+                    onPressed: () {
+                      FirebaseAuth.instance.signOut();
+                      setState(() {
+                        _currentUser = null;
+                      });
+                    },
+                    child: Text("Salir"),
+                  ),
+                ],
+              ),
             ),
-            RaisedButton(
-              onPressed: () {
-                Navigator.of(context).push(CreatePartyScreen.route(_currentUser.uid));
-              },
-              child: Text("Crear Fiesta"),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
