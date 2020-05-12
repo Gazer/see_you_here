@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'dart:math' as math;
+
+import 'package:see_you_here_app/party_api.dart';
 
 class MapsScreen extends StatefulWidget {
   final String partyNumber;
@@ -40,7 +41,8 @@ class _MapsScreenState extends State<MapsScreen> {
   GoogleMapController _mapController;
   Location _location = Location();
   StreamSubscription<LocationData> subscription;
-  StreamSubscription<QuerySnapshot> documentSubscription;
+//  StreamSubscription<QuerySnapshot> documentSubscription;
+  Timer updater;
   List<Person> people = List();
   Set<Marker> markers = Set();
   LatLng target;
@@ -70,35 +72,50 @@ class _MapsScreenState extends State<MapsScreen> {
       }
     }
 
-    var party = await Firestore.instance
-        .collection('parties')
-        .document(widget.partyNumber)
-        .get();
+    var api = PartyService.getClient();
+    var response = await api.getParty(widget.partyNumber);
+    var party = response.body;
 
     target = LatLng(
-      party['target'].latitude,
-      party['target'].longitude,
+      party['latitud'],
+      party['longitud'],
     );
 
-    documentSubscription = Firestore.instance
-        .collection('parties')
-        .document(widget.partyNumber)
-        .collection('people')
-        .snapshots()
-        .listen((event) {
-      people = event.documents
-          .map(
+    // TODO : Read people from API
+    updater = Timer.periodic(Duration(seconds: 1), (Timer timer) async {
+      var response = await api.getParty(widget.partyNumber);
+      var party = response.body;
+
+      people = party['people'].map<Person>(
             (e) => Person(
-              e.documentID,
+              e['token'],
               LatLng(e['lat'], e['lng']),
               e['name'],
-              e.documentID == widget.userId,
+              e['token'] == widget.userId,
             ),
-          )
-          .toList();
-
+          ).toList();
       _createMarkers();
     });
+
+//    documentSubscription = Firestore.instance
+//        .collection('parties')
+//        .document(widget.partyNumber)
+//        .collection('people')
+//        .snapshots()
+//        .listen((event) {
+//      people = event.documents
+//          .map(
+//            (e) => Person(
+//              e.documentID,
+//              LatLng(e['lat'], e['lng']),
+//              e['name'],
+//              e.documentID == widget.userId,
+//            ),
+//          )
+//          .toList();
+//
+//      _createMarkers();
+//    });
 
     subscription = _location.onLocationChanged.listen((LocationData event) {
       if (_mapController != null) {
@@ -132,15 +149,12 @@ class _MapsScreenState extends State<MapsScreen> {
         );
       }
 
-      Firestore.instance
-          .collection('parties')
-          .document(widget.partyNumber)
-          .collection('people')
-          .document(widget.userId)
-          .setData({
+      var api = PartyService.getClient();
+      api.ping(widget.partyNumber, {
         'lat': event.latitude,
         'lng': event.longitude,
         'name': 'RM',
+        'token': widget.userId,
       });
 
       print("${event.latitude}, ${event.longitude}");
@@ -150,12 +164,13 @@ class _MapsScreenState extends State<MapsScreen> {
   @override
   void didUpdateWidget(MapsScreen oldWidget) {
     if (oldWidget.userId != widget.userId) {
-      Firestore.instance
-          .collection('parties')
-          .document(widget.partyNumber)
-          .collection('people')
-          .document(oldWidget.userId)
-          .delete();
+      // TODO: Delete me from party
+//      Firestore.instance
+//          .collection('parties')
+//          .document(widget.partyNumber)
+//          .collection('people')
+//          .document(oldWidget.userId)
+//          .delete();
     }
   }
 
@@ -165,16 +180,21 @@ class _MapsScreenState extends State<MapsScreen> {
     if (subscription != null) {
       subscription.cancel();
     }
-    if (documentSubscription != null) {
-      documentSubscription.cancel();
+    if (updater != null) {
+      updater.cancel();
     }
+//    if (documentSubscription != null) {
+//      documentSubscription.cancel();
+//    }
 
-    Firestore.instance
-        .collection('parties')
-        .document(widget.partyNumber)
-        .collection('people')
-        .document(widget.userId)
-        .delete();
+    // TODO: Delete me from party
+//
+//    Firestore.instance
+//        .collection('parties')
+//        .document(widget.partyNumber)
+//        .collection('people')
+//        .document(widget.userId)
+//        .delete();
   }
 
   @override

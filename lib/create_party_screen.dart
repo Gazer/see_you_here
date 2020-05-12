@@ -1,7 +1,7 @@
 import 'package:address_search_text_field/address_search_text_field.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:see_you_here_app/party_api.dart';
 import 'package:uuid/uuid.dart';
 
 import 'maps_screen.dart';
@@ -54,6 +54,8 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: AddressSearchTextField(
+                  noResultsText: "No se encontraron resultado",
+                  hintText: "Buscá un lugar",
                   country: "Argentina",
                   onDone: (AddressPoint point) {
                     print(point.latitude);
@@ -95,12 +97,14 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                 // Party Number
                 var partyNumber = _calculatePartyNumber(userId, target);
 
-                // Crear el party
-                await Firestore.instance
-                    .collection('parties')
-                    .document(partyNumber)
-                    .setData({
-                  "target": GeoPoint(target.latitude, target.longitude)
+                print(partyNumber);
+
+                PartyService api = PartyService.getClient();
+
+                await api.createParty({
+                  "latitud": target.latitude,
+                  "longitud": target.longitude,
+                  "short_code": partyNumber,
                 });
 
                 // Abrir el mapa
