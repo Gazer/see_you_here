@@ -17,10 +17,10 @@ class _$PartyService extends PartyService {
   final definitionType = PartyService;
 
   @override
-  Future<Response<dynamic>> getParty(String id) {
+  Future<Response<Party>> getParty(String id) {
     final $url = '//parties/$id';
     final $request = Request('GET', $url, client.baseUrl);
-    return client.send<dynamic, dynamic>($request);
+    return client.send<Party, Party>($request);
   }
 
   @override
@@ -32,10 +32,10 @@ class _$PartyService extends PartyService {
   }
 
   @override
-  Future<Response<dynamic>> createParty(Map<String, dynamic> body) {
+  Future<Response<Party>> createParty(Party part) {
     final $url = '//parties';
-    final $body = body;
+    final $body = part;
     final $request = Request('POST', $url, client.baseUrl, body: $body);
-    return client.send<dynamic, dynamic>($request);
+    return client.send<Party, Party>($request);
   }
 }

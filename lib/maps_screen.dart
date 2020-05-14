@@ -5,9 +5,11 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:see_you_here_app/party.dart';
 import 'dart:math' as math;
 
 import 'package:see_you_here_app/party_api.dart';
+import 'package:see_you_here_app/person.dart';
 
 class MapsScreen extends StatefulWidget {
   final String partyNumber;
@@ -26,15 +28,6 @@ class MapsScreen extends StatefulWidget {
 
   @override
   _MapsScreenState createState() => _MapsScreenState();
-}
-
-class Person {
-  final String id;
-  final LatLng position;
-  final String name;
-  final bool isMe;
-
-  Person(this.id, this.position, this.name, this.isMe);
 }
 
 class _MapsScreenState extends State<MapsScreen> {
@@ -74,26 +67,17 @@ class _MapsScreenState extends State<MapsScreen> {
 
     var api = PartyService.getClient();
     var response = await api.getParty(widget.partyNumber);
-    var party = response.body;
+    Party party = response.body;
 
-    target = LatLng(
-      party['latitud'],
-      party['longitud'],
-    );
+    target = party.target;
 
     // TODO : Read people from API
     updater = Timer.periodic(Duration(seconds: 1), (Timer timer) async {
       var response = await api.getParty(widget.partyNumber);
       var party = response.body;
 
-      people = party['people'].map<Person>(
-            (e) => Person(
-              e['token'],
-              LatLng(e['lat'], e['lng']),
-              e['name'],
-              e['token'] == widget.userId,
-            ),
-          ).toList();
+      people = party.people;
+
       _createMarkers();
     });
 
@@ -220,9 +204,9 @@ class _MapsScreenState extends State<MapsScreen> {
   void _createMarkers() async {
     Set<Marker> newMarkers = Set();
 
-    await Future.forEach(people, (person) async {
+    await Future.forEach(people, (Person person) async {
       var bitmapData = await _createAvatar(100, 100, person.name,
-        color: person.isMe ? Colors.red : Colors.blue,
+        color: person.id == widget.userId ? Colors.red : Colors.blue,
       );
       var bitmapDescriptor = BitmapDescriptor.fromBytes(bitmapData);
 

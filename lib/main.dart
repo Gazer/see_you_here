@@ -1,11 +1,22 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:logging/logging.dart';
 
 import 'create_party_screen.dart';
 import 'join_screen.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  _setupLogger();
+  runApp(MyApp());
+}
+
+void _setupLogger() {
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.

@@ -1,6 +1,7 @@
 import 'package:address_search_text_field/address_search_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:see_you_here_app/party.dart';
 import 'package:see_you_here_app/party_api.dart';
 import 'package:uuid/uuid.dart';
 
@@ -101,16 +102,15 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
 
                 PartyService api = PartyService.getClient();
 
-                await api.createParty({
-                  "latitud": target.latitude,
-                  "longitud": target.longitude,
-                  "short_code": partyNumber,
-                });
+                var party = Party(
+                  target: target,
+                  shortCode: partyNumber,
+                );
+                await api.createParty(party);
 
                 // Abrir el mapa
-                Navigator.of(context).push(
-                    MapsScreen.route(userId, partyNumber)
-                );
+                Navigator.of(context)
+                    .push(MapsScreen.route(userId, partyNumber));
               },
               child: Icon(Icons.check),
             ),
