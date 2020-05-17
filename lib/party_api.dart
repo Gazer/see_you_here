@@ -1,5 +1,6 @@
 import "dart:async";
 import 'package:chopper/chopper.dart';
+import 'package:see_you_here_app/auth_interceptor.dart';
 import 'package:see_you_here_app/party.dart';
 import 'package:see_you_here_app/party_converter.dart';
 
@@ -29,6 +30,7 @@ abstract class PartyService extends ChopperService {
       ],
       converter: PartyConverter(),
       interceptors: [
+        AuthInterceptorSingleton.instance,
         HttpLoggingInterceptor()
       ],
     );

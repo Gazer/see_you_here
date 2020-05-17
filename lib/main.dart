@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:logging/logging.dart';
+import 'package:see_you_here_app/auth_interceptor.dart';
 
 import 'create_party_screen.dart';
 import 'join_screen.dart';
@@ -47,7 +48,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
 
     FirebaseAuth.instance.currentUser().then(
-          (u) => setState(() => _currentUser = u),
+          (u) => setState(() {
+            AuthInterceptorSingleton.token = u.uid;
+            return _currentUser = u;
+          }),
     );
   }
 
@@ -74,6 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
   _doLogin() {
     _handleSignIn().then((FirebaseUser user) {
       setState(() {
+        AuthInterceptorSingleton.token = user.uid;
         _currentUser = user;
       });
     }).catchError((e) => print(e));
@@ -83,6 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
     var result = await FirebaseAuth.instance.signInAnonymously();
     if (result != null) {
       setState(() {
+        AuthInterceptorSingleton.token = result.user.uid;
         _currentUser = result.user;
       });
       print(_currentUser.displayName);
@@ -95,6 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
       var result = await _currentUser.linkWithCredential(credentials);
       if (result != null) {
         setState(() {
+          AuthInterceptorSingleton.token = result.user.uid;
           _currentUser = result.user;
         });
       }
@@ -148,6 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       FirebaseAuth.instance.signOut();
                       setState(() {
+                        AuthInterceptorSingleton.token = null;
                         _currentUser = null;
                       });
                     },
