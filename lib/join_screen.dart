@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:see_you_here_app/maps_screen.dart';
-import 'package:uuid/uuid.dart';
 
 class JoinScreen extends StatefulWidget {
-
   static Route route(String userId) {
     return MaterialPageRoute(
       builder: (_) => JoinScreen(userId: userId),
@@ -58,8 +56,7 @@ class _JoinScreenState extends State<JoinScreen> {
             child: Text("Go!"),
             onPressed: () {
               Navigator.of(context).push(
-                MapsScreen.route(widget.userId, partyNumberController.text)
-              );
+                  MapsScreen.route(widget.userId, partyNumberController.text));
             },
           )
         ],

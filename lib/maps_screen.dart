@@ -70,9 +70,9 @@ class _MapsScreenState extends State<MapsScreen> {
       }
     }
 
-    var party = await Firestore.instance
+    var party = await FirebaseFirestore.instance
         .collection('parties')
-        .document(widget.partyNumber)
+        .doc(widget.partyNumber)
         .get();
 
     target = LatLng(
@@ -80,19 +80,19 @@ class _MapsScreenState extends State<MapsScreen> {
       party['target'].longitude,
     );
 
-    documentSubscription = Firestore.instance
+    documentSubscription = FirebaseFirestore.instance
         .collection('parties')
-        .document(widget.partyNumber)
+        .doc(widget.partyNumber)
         .collection('people')
         .snapshots()
         .listen((event) {
-      people = event.documents
+      people = event.docs
           .map(
             (e) => Person(
-              e.documentID,
+              e.id,
               LatLng(e['lat'], e['lng']),
               e['name'],
-              e.documentID == widget.userId,
+              e.id == widget.userId,
             ),
           )
           .toList();
@@ -102,10 +102,18 @@ class _MapsScreenState extends State<MapsScreen> {
 
     subscription = _location.onLocationChanged.listen((LocationData event) {
       if (_mapController != null) {
-        double minX = people.isEmpty ? 0 : people.map((e) => e.position.latitude).reduce(math.min);
-        double minY = people.isEmpty ? 0 : people.map((e) => e.position.longitude).reduce(math.min);
-        double maxX = people.isEmpty ? 0 : people.map((e) => e.position.latitude).reduce(math.max);
-        double maxY = people.isEmpty ? 0 : people.map((e) => e.position.longitude).reduce(math.max);
+        double minX = people.isEmpty
+            ? 0
+            : people.map((e) => e.position.latitude).reduce(math.min);
+        double minY = people.isEmpty
+            ? 0
+            : people.map((e) => e.position.longitude).reduce(math.min);
+        double maxX = people.isEmpty
+            ? 0
+            : people.map((e) => e.position.latitude).reduce(math.max);
+        double maxY = people.isEmpty
+            ? 0
+            : people.map((e) => e.position.longitude).reduce(math.max);
 
         if (target != null) {
           minX = math.min(minX, target.latitude);
@@ -132,12 +140,12 @@ class _MapsScreenState extends State<MapsScreen> {
         );
       }
 
-      Firestore.instance
+      FirebaseFirestore.instance
           .collection('parties')
-          .document(widget.partyNumber)
+          .doc(widget.partyNumber)
           .collection('people')
-          .document(widget.userId)
-          .setData({
+          .doc(widget.userId)
+          .set({
         'lat': event.latitude,
         'lng': event.longitude,
         'name': 'RM',
@@ -149,12 +157,14 @@ class _MapsScreenState extends State<MapsScreen> {
 
   @override
   void didUpdateWidget(MapsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
     if (oldWidget.userId != widget.userId) {
-      Firestore.instance
+      FirebaseFirestore.instance
           .collection('parties')
-          .document(widget.partyNumber)
+          .doc(widget.partyNumber)
           .collection('people')
-          .document(oldWidget.userId)
+          .doc(oldWidget.userId)
           .delete();
     }
   }
@@ -169,11 +179,11 @@ class _MapsScreenState extends State<MapsScreen> {
       documentSubscription.cancel();
     }
 
-    Firestore.instance
+    FirebaseFirestore.instance
         .collection('parties')
-        .document(widget.partyNumber)
+        .doc(widget.partyNumber)
         .collection('people')
-        .document(widget.userId)
+        .doc(widget.userId)
         .delete();
   }
 
@@ -201,7 +211,10 @@ class _MapsScreenState extends State<MapsScreen> {
     Set<Marker> newMarkers = Set();
 
     await Future.forEach(people, (person) async {
-      var bitmapData = await _createAvatar(100, 100, person.name,
+      var bitmapData = await _createAvatar(
+        100,
+        100,
+        person.name,
         color: person.isMe ? Colors.red : Colors.blue,
       );
       var bitmapDescriptor = BitmapDescriptor.fromBytes(bitmapData);
@@ -216,14 +229,11 @@ class _MapsScreenState extends State<MapsScreen> {
     });
 
     if (target != null) {
-      newMarkers.add(
-          Marker(
-            markerId: MarkerId("target"),
-            position: target,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-                BitmapDescriptor.hueGreen),
-          )
-      );
+      newMarkers.add(Marker(
+        markerId: MarkerId("target"),
+        position: target,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      ));
     }
 
     setState(() {

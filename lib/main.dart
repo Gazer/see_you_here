@@ -7,11 +7,16 @@ import 'package:provider/provider.dart';
 import 'package:see_you_here_app/if.dart';
 import 'package:see_you_here_app/menu_button.dart';
 import 'package:see_you_here_app/notifications_provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'create_party_screen.dart';
 import 'join_screen.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -70,15 +75,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  FirebaseUser _currentUser;
+  User _currentUser;
 
   @override
   void initState() {
     super.initState();
 
-    FirebaseAuth.instance.currentUser().then(
-          (u) => setState(() => _currentUser = u),
-        );
+    _currentUser = FirebaseAuth.instance.currentUser;
   }
 
   Future<AuthCredential> _authWithGoogle() async {
@@ -86,23 +89,22 @@ class _LoginScreenState extends State<LoginScreen> {
     final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
-    return GoogleAuthProvider.getCredential(
+    return GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
   }
 
-  Future<FirebaseUser> _handleSignIn() async {
+  Future<User> _handleSignIn() async {
     final AuthCredential credential = await _authWithGoogle();
 
-    final FirebaseUser user =
-        (await _auth.signInWithCredential(credential)).user;
+    final User user = (await _auth.signInWithCredential(credential)).user;
     print("signed in " + user.displayName);
     return user;
   }
 
   _doLogin() {
-    _handleSignIn().then((FirebaseUser user) {
+    _handleSignIn().then((User user) {
       setState(() {
         _currentUser = user;
       });
