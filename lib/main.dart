@@ -61,27 +61,50 @@ class _MyAppState extends State<MyApp> {
         theme: ThemeData(
           primarySwatch: Colors.amber,
         ),
-        home: LoginScreen(),
+        home: LoginScreen(
+          loginService: LoginService(),
+        ),
       ),
     );
   }
 }
 
+class LoginService {
+  User currentUser() {
+    return FirebaseAuth.instance.currentUser;
+  }
+
+  Future<User> signInWithCredential(AuthCredential credential) async {
+    return (await FirebaseAuth.instance.signInWithCredential(credential)).user;
+  }
+
+  Future<User> signInAnonymously() async {
+    var result = await FirebaseAuth.instance.signInAnonymously();
+    if (result != null) {
+      return result.user;
+    }
+    return null;
+  }
+}
+
 class LoginScreen extends StatefulWidget {
+  final LoginService loginService;
+
+  const LoginScreen({Key key, @required this.loginService}) : super(key: key);
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   User _currentUser;
 
   @override
   void initState() {
     super.initState();
 
-    _currentUser = FirebaseAuth.instance.currentUser;
+    _currentUser = widget.loginService.currentUser();
   }
 
   Future<AuthCredential> _authWithGoogle() async {
@@ -98,7 +121,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<User> _handleSignIn() async {
     final AuthCredential credential = await _authWithGoogle();
 
-    final User user = (await _auth.signInWithCredential(credential)).user;
+    final User user =
+        (await widget.loginService.signInWithCredential(credential));
     print("signed in " + user.displayName);
     return user;
   }
@@ -112,10 +136,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   _doAnonLogin() async {
-    var result = await FirebaseAuth.instance.signInAnonymously();
+    var result = await widget.loginService.signInAnonymously();
     if (result != null) {
       setState(() {
-        _currentUser = result.user;
+        _currentUser = result;
       });
       print(_currentUser.displayName);
     }
@@ -197,11 +221,14 @@ class _LoginScreenState extends State<LoginScreen> {
         expect: _currentUser == null,
         then: () => Column(
           children: <Widget>[
-            AspectRatio(
-              aspectRatio: 1.0,
-              child: SvgPicture.asset('assets/map-logo.svg'),
+            Expanded(
+              flex: 20,
+              child: AspectRatio(
+                aspectRatio: 1.0,
+                child: SvgPicture.asset('assets/map-logo.svg'),
+              ),
             ),
-            Spacer(flex: 10),
+            Spacer(flex: 1),
             Row(
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -231,11 +258,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         or: () => Column(
           children: <Widget>[
-            AspectRatio(
-              aspectRatio: 1.0,
-              child: SvgPicture.asset('assets/map-logo.svg'),
+            Expanded(
+              flex: 20,
+              child: AspectRatio(
+                aspectRatio: 1.0,
+                child: SvgPicture.asset('assets/map-logo.svg'),
+              ),
             ),
-            Spacer(flex: 10),
+            Spacer(flex: 1),
             Row(
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceAround,
