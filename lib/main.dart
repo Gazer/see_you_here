@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:see_you_here_app/if.dart';
@@ -15,6 +16,9 @@ import 'join_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  GetIt.instance.registerSingleton(LoginService());
+
   runApp(MyApp());
 }
 
@@ -62,7 +66,7 @@ class _MyAppState extends State<MyApp> {
           primarySwatch: Colors.amber,
         ),
         home: LoginScreen(
-          loginService: LoginService(),
+          loginService: GetIt.instance(),
         ),
       ),
     );
@@ -84,6 +88,10 @@ class LoginService {
       return result.user;
     }
     return null;
+  }
+
+  void signOut() {
+    FirebaseAuth.instance.signOut();
   }
 }
 
@@ -191,9 +199,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           if (_currentUser != null)
             PopupMenuButton<String>(
+              key: Key("menu"),
               onSelected: (String option) {
                 if (option == "salir") {
-                  FirebaseAuth.instance.signOut();
+                  widget.loginService.signOut();
                   setState(() {
                     _currentUser = null;
                   });
@@ -209,6 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text("Agregar Cuenta de Google"),
                     ),
                   PopupMenuItem<String>(
+                    key: Key("signout"),
                     value: "salir",
                     child: Text("Salir"),
                   )

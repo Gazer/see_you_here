@@ -1,11 +1,8 @@
+import 'package:firebase_auth_platform_interface/src/auth_credential.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:see_you_here_app/main.dart';
-import 'package:see_you_here_app/notifications_provider.dart';
 
-class FakeUser implements User {
+class MockUser implements User {
   @override
   Future<void> delete() {
     // TODO: implement delete
@@ -13,7 +10,7 @@ class FakeUser implements User {
   }
 
   @override
-  String get displayName => "Fake User";
+  String get displayName => "Mock User";
 
   @override
   // TODO: implement email
@@ -36,8 +33,7 @@ class FakeUser implements User {
   }
 
   @override
-  // TODO: implement isAnonymous
-  bool get isAnonymous => throw UnimplementedError();
+  bool get isAnonymous => true;
 
   @override
   Future<UserCredential> linkWithCredential(AuthCredential credential) {
@@ -100,8 +96,7 @@ class FakeUser implements User {
   String get tenantId => throw UnimplementedError();
 
   @override
-  // TODO: implement uid
-  String get uid => throw UnimplementedError();
+  String get uid => "userId";
 
   @override
   Future<User> unlink(String providerId) {
@@ -142,11 +137,14 @@ class FakeUser implements User {
 }
 
 class FakeLoginService implements LoginService {
-  User _user;
-
   @override
   User currentUser() {
     return null;
+  }
+
+  @override
+  Future<User> signInAnonymously() async {
+    return MockUser();
   }
 
   @override
@@ -155,69 +153,5 @@ class FakeLoginService implements LoginService {
   }
 
   @override
-  Future<User> signInAnonymously() async {
-    return _user;
-  }
-
-  void setUser(User user) {
-    _user = user;
-  }
-
-  @override
-  void signOut() {
-    _user = null;
-  }
-}
-
-void main() {
-  testWidgets("initial status should show login buttons",
-      (WidgetTester tester) async {
-    // GIVEN
-    var widget = LoginScreen(
-      loginService: FakeLoginService(),
-    );
-
-    // WHEN
-    await tester.pumpWidget(
-      MaterialApp(
-        home: widget,
-      ),
-    );
-
-    // THEN
-    expect(find.text("Entrar como Anónimo"), findsOneWidget);
-    expect(find.text("Entrar con Google"), findsOneWidget);
-    expect(find.text("Ir a una Fiesta"), findsNothing);
-    expect(find.text("Crear Fiesta"), findsNothing);
-  });
-
-  testWidgets("login as anon user", (WidgetTester tester) async {
-    // GIVEN
-    var fakeService = FakeLoginService();
-    var widget = LoginScreen(
-      loginService: fakeService,
-    );
-
-    // WHEN
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => NotificationsProvider.instance,
-        builder: (BuildContext context, Widget child) => child,
-        child: MaterialApp(
-          home: widget,
-        ),
-      ),
-    );
-    var btn = find.text("Entrar como Anónimo");
-    var user = FakeUser();
-    fakeService.setUser(user);
-    await tester.tap(btn);
-    await tester.pump();
-
-    // THEN
-    expect(find.text("Entrar como Anónimo"), findsNothing);
-    expect(find.text("Entrar con Google"), findsNothing);
-    expect(find.text("Ir a una Fiesta"), findsOneWidget);
-    expect(find.text("Crear Fiesta"), findsOneWidget);
-  });
+  void signOut() {}
 }
