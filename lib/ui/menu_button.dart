@@ -11,7 +11,7 @@ class MenuButton extends StatelessWidget {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: RaisedButton(
+        child: ElevatedButton(
           onPressed: onPressed,
           child: child,
         ),

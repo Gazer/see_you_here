@@ -41,7 +41,7 @@ class _MapsScreenState extends State<MapsScreen> {
   Location _location = Location();
   StreamSubscription<LocationData> subscription;
   StreamSubscription<QuerySnapshot> documentSubscription;
-  List<Person> people = List();
+  List<Person> people = [];
   Set<Marker> markers = Set();
   LatLng target;
 
