@@ -1,20 +1,37 @@
 import 'package:address_search_text_field/address_search_text_field.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:see_you_here_app/features/create_party/repository/target_repository.dart';
+import 'package:see_you_here_app/features/create_party/usecase/create_markers_use_case.dart';
+import 'package:see_you_here_app/features/create_party/usecase/create_party_use_case.dart';
 
 import '../maps/maps_screen.dart';
 
 class CreatePartyScreen extends StatefulWidget {
   static Route route(String userId) {
+    var repository = TargetRepository();
     return MaterialPageRoute(
-      builder: (_) => CreatePartyScreen(userId: userId),
+      builder: (_) => CreatePartyScreen(
+        userId: userId,
+        repository: repository,
+        createMarkersUseCase: CreateMarkersUseCase(repository),
+        createPartyUseCase: CreatePartyUseCase(repository),
+      ),
     );
   }
 
-  const CreatePartyScreen({Key key, this.userId}) : super(key: key);
+  const CreatePartyScreen({
+    Key key,
+    this.userId,
+    this.repository,
+    this.createMarkersUseCase,
+    this.createPartyUseCase,
+  }) : super(key: key);
 
   final String userId;
+  final TargetRepository repository;
+  final CreateMarkersUseCase createMarkersUseCase;
+  final CreatePartyUseCase createPartyUseCase;
 
   @override
   _CreatePartyScreenState createState() => _CreatePartyScreenState();
@@ -22,8 +39,6 @@ class CreatePartyScreen extends StatefulWidget {
 
 class _CreatePartyScreenState extends State<CreatePartyScreen> {
   GoogleMapController _mapController;
-  LatLng target = LatLng(0, 0);
-  Set<Marker> markers = Set();
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +55,7 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                 zoom: 16,
               ),
               zoomGesturesEnabled: true,
-              markers: markers,
+              markers: widget.createMarkersUseCase(),
               onMapCreated: (controller) => _mapController = controller,
             ),
           ),
@@ -57,24 +72,15 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
                   hintText: "Lugar o direccion",
                   country: "Argentina",
                   onDone: (AddressPoint point) {
-                    print(point.latitude);
-                    print(point.longitude);
+                    widget.repository.setTarget(
+                      LatLng(point.latitude, point.longitude),
+                    );
 
-                    target = LatLng(point.latitude, point.longitude);
-
-                    setState(() {
-                      markers = Set();
-                      markers.add(
-                        Marker(
-                          markerId: MarkerId("target"),
-                          position: target,
-                        ),
-                      );
-                    });
+                    setState(() {});
 
                     _mapController.animateCamera(
                       CameraUpdate.newLatLng(
-                        target,
+                        widget.repository.getTarget(),
                       ),
                     );
 
@@ -90,23 +96,12 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
             right: 0,
             child: FloatingActionButton(
               onPressed: () async {
-                // UserId
-                var userId = widget.userId;
-
-                // Party Number
-                var partyNumber = _calculatePartyNumber(userId, target);
-
-                // Crear el party
-                await FirebaseFirestore.instance
-                    .collection('parties')
-                    .doc(partyNumber)
-                    .set({
-                  "target": GeoPoint(target.latitude, target.longitude)
-                });
-
-                // Abrir el mapa
-                Navigator.of(context)
-                    .push(MapsScreen.route(userId, partyNumber));
+                Navigator.of(context).push(
+                  MapsScreen.route(
+                    widget.userId,
+                    await widget.createPartyUseCase(widget.userId),
+                  ),
+                );
               },
               child: Icon(Icons.check),
             ),
@@ -114,21 +109,5 @@ class _CreatePartyScreenState extends State<CreatePartyScreen> {
         ],
       ),
     );
-  }
-
-  String _calculatePartyNumber(String userId, LatLng target) {
-    var tmp = "$userId;${target.latitude};${target.longitude}";
-    var tmpInt = tmp.hashCode;
-
-    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    var result = '';
-
-    while (tmpInt > 0) {
-      var remainder = tmpInt % 36;
-      result = chars[remainder] + result;
-      tmpInt = tmpInt ~/ 36;
-    }
-
-    return result;
   }
 }
