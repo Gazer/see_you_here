@@ -1,23 +1,28 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as FA;
+
+import 'models/user.dart';
+import 'firebase_user_mapper.dart';
 
 class LoginService {
   User currentUser() {
-    return FirebaseAuth.instance.currentUser;
+    return FA.FirebaseAuth.instance.currentUser.toSeeYouHereUser();
   }
 
-  Future<User> signInWithCredential(AuthCredential credential) async {
-    return (await FirebaseAuth.instance.signInWithCredential(credential)).user;
+  Future<User> signInWithCredential(FA.AuthCredential credential) async {
+    return (await FA.FirebaseAuth.instance.signInWithCredential(credential))
+        .user
+        .toSeeYouHereUser();
   }
 
   Future<User> signInAnonymously() async {
-    var result = await FirebaseAuth.instance.signInAnonymously();
+    var result = await FA.FirebaseAuth.instance.signInAnonymously();
     if (result != null) {
-      return result.user;
+      return result.user.toSeeYouHereUser();
     }
     return null;
   }
 
   void signOut() {
-    FirebaseAuth.instance.signOut();
+    FA.FirebaseAuth.instance.signOut();
   }
 }

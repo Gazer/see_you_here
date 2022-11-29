@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -6,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:see_you_here_app/features/create_party/create_party_screen.dart';
 import 'package:see_you_here_app/features/join_party/join_screen.dart';
 import 'package:see_you_here_app/services/login_service.dart';
+import 'package:see_you_here_app/services/models/user.dart';
 import 'package:see_you_here_app/ui/if.dart';
 import 'package:see_you_here_app/ui/menu_button.dart';
 import 'package:see_you_here_app/providers/notifications_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart' as FA;
 
 class LoginScreen extends StatefulWidget {
   final LoginService loginService;
@@ -30,23 +31,23 @@ class _LoginScreenState extends State<LoginScreen> {
     _currentUser = widget.loginService.currentUser();
   }
 
-  Future<AuthCredential> _authWithGoogle() async {
+  Future<FA.AuthCredential> _authWithGoogle() async {
     final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
     final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
-    return GoogleAuthProvider.credential(
+    return FA.GoogleAuthProvider.credential(
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
   }
 
   Future<User> _handleSignIn() async {
-    final AuthCredential credential = await _authWithGoogle();
+    final FA.AuthCredential credential = await _authWithGoogle();
 
     final User user =
         (await widget.loginService.signInWithCredential(credential));
-    print("signed in " + user.displayName);
+    print("signed in " + user.name);
     return user;
   }
 
@@ -64,20 +65,20 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         _currentUser = result;
       });
-      print(_currentUser.displayName);
+      print(_currentUser.name);
     }
   }
 
   _linkGoogleAccount() async {
-    var credentials = await _authWithGoogle();
-    if (credentials != null) {
-      var result = await _currentUser.linkWithCredential(credentials);
-      if (result != null) {
-        setState(() {
-          _currentUser = result.user;
-        });
-      }
-    }
+    // var credentials = await _authWithGoogle();
+    // if (credentials != null) {
+    //   var result = await _currentUser.linkWithCredential(credentials);
+    //   if (result != null) {
+    //     setState(() {
+    //       _currentUser = result.user;
+    //     });
+    //   }
+    // }
   }
 
   @override
@@ -198,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 MenuButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      JoinScreen.route(_currentUser.uid),
+                      JoinScreen.route(_currentUser.userId),
                     );
                   },
                   child: Text("Ir a una Fiesta"),
@@ -206,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 MenuButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      CreatePartyScreen.route(_currentUser.uid),
+                      CreatePartyScreen.route(_currentUser.userId),
                     );
                   },
                   child: Text("Crear Fiesta"),
