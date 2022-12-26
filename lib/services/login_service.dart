@@ -5,6 +5,9 @@ import 'firebase_user_mapper.dart';
 
 class LoginService {
   User currentUser() {
+    if (FA.FirebaseAuth.instance.currentUser == null) {
+      return null;
+    }
     return FA.FirebaseAuth.instance.currentUser.toSeeYouHereUser();
   }
 

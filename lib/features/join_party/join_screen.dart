@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:see_you_here_app/features/maps/maps_screen.dart';
+import 'package:see_you_here_app/parties/party.dart';
 
 class JoinScreen extends StatefulWidget {
   static Route route(String userId) {
@@ -55,8 +56,15 @@ class _JoinScreenState extends State<JoinScreen> {
           ElevatedButton(
             child: Text("Go!"),
             onPressed: () {
-              Navigator.of(context).push(
-                  MapsScreen.route(widget.userId, partyNumberController.text));
+              // TODO FIX ME
+              var party = Party(
+                partyNumberController.text,
+                null,
+              );
+              Navigator.of(context).push(MapsScreen.route(
+                widget.userId,
+                party,
+              ));
             },
           )
         ],

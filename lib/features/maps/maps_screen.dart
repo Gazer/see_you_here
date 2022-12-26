@@ -2,23 +2,44 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:see_you_here_app/features/maps/usercase/add_perdon_to_party_use_case.dart';
+import 'package:see_you_here_app/features/maps/usercase/delete_person_from_party_use_case.dart';
+import 'package:see_you_here_app/features/maps/usercase/on_people_change_use_case.dart';
+import 'package:see_you_here_app/parties/parties_repository.dart';
 import 'dart:math' as math;
 
+import 'package:see_you_here_app/parties/party.dart';
+import 'package:see_you_here_app/parties/person.dart';
+
 class MapsScreen extends StatefulWidget {
-  final String partyNumber;
+  final AddPersonToPartyUseCase addPersonToPartyUseCase;
+  final DeletePersonFromPartyUseCase deletePersonFromPartyUseCase;
+  final OnPeopleChangeUseCase onPeopleChangeUseCase;
+  final Party party;
   final String userId;
 
-  const MapsScreen({Key key, this.userId, this.partyNumber}) : super(key: key);
+  const MapsScreen({
+    Key key,
+    this.userId,
+    this.party,
+    this.addPersonToPartyUseCase,
+    this.deletePersonFromPartyUseCase,
+    this.onPeopleChangeUseCase,
+  }) : super(key: key);
 
-  static MaterialPageRoute route(String userId, String partyNumber) {
+  static MaterialPageRoute route(String userId, Party party) {
     return MaterialPageRoute(builder: (context) {
+      var partiesRepository = PartiesRepository();
       return MapsScreen(
         userId: userId,
-        partyNumber: partyNumber,
+        party: party,
+        addPersonToPartyUseCase: AddPersonToPartyUseCase(partiesRepository),
+        deletePersonFromPartyUseCase:
+            DeletePersonFromPartyUseCase(partiesRepository),
+        onPeopleChangeUseCase: OnPeopleChangeUseCase(partiesRepository),
       );
     });
   }
@@ -27,23 +48,13 @@ class MapsScreen extends StatefulWidget {
   _MapsScreenState createState() => _MapsScreenState();
 }
 
-class Person {
-  final String id;
-  final LatLng position;
-  final String name;
-  final bool isMe;
-
-  Person(this.id, this.position, this.name, this.isMe);
-}
-
 class _MapsScreenState extends State<MapsScreen> {
   GoogleMapController _mapController;
   Location _location = Location();
   StreamSubscription<LocationData> subscription;
-  StreamSubscription<QuerySnapshot> documentSubscription;
+  StreamSubscription<List<Person>> documentSubscription;
   List<Person> people = [];
   Set<Marker> markers = Set();
-  LatLng target;
 
   @override
   void initState() {
@@ -70,35 +81,12 @@ class _MapsScreenState extends State<MapsScreen> {
       }
     }
 
-    var party = await FirebaseFirestore.instance
-        .collection('parties')
-        .doc(widget.partyNumber)
-        .get();
-
-    target = LatLng(
-      party['target'].latitude,
-      party['target'].longitude,
+    documentSubscription = widget.onPeopleChangeUseCase(widget.party).listen(
+      ((List<Person> list) {
+        people = list;
+        _createMarkers();
+      }),
     );
-
-    documentSubscription = FirebaseFirestore.instance
-        .collection('parties')
-        .doc(widget.partyNumber)
-        .collection('people')
-        .snapshots()
-        .listen((event) {
-      people = event.docs
-          .map(
-            (e) => Person(
-              e.id,
-              LatLng(e['lat'], e['lng']),
-              e['name'],
-              e.id == widget.userId,
-            ),
-          )
-          .toList();
-
-      _createMarkers();
-    });
 
     subscription = _location.onLocationChanged.listen((LocationData event) {
       if (_mapController != null) {
@@ -115,11 +103,11 @@ class _MapsScreenState extends State<MapsScreen> {
             ? 0
             : people.map((e) => e.position.longitude).reduce(math.max);
 
-        if (target != null) {
-          minX = math.min(minX, target.latitude);
-          minY = math.min(minY, target.longitude);
-          maxX = math.max(maxX, target.latitude);
-          maxY = math.max(maxY, target.longitude);
+        if (widget.party != null) {
+          minX = math.min(minX, widget.party.target.latitude);
+          minY = math.min(minY, widget.party.target.longitude);
+          maxX = math.max(maxX, widget.party.target.latitude);
+          maxY = math.max(maxY, widget.party.target.longitude);
         }
 
         minX = math.min(minX, event.latitude);
@@ -140,16 +128,17 @@ class _MapsScreenState extends State<MapsScreen> {
         );
       }
 
-      FirebaseFirestore.instance
-          .collection('parties')
-          .doc(widget.partyNumber)
-          .collection('people')
-          .doc(widget.userId)
-          .set({
-        'lat': event.latitude,
-        'lng': event.longitude,
-        'name': 'RM',
-      });
+      widget.addPersonToPartyUseCase(
+        widget.party,
+        Person(
+          widget.userId,
+          LatLng(
+            event.latitude,
+            event.longitude,
+          ),
+          'RM',
+        ),
+      );
 
       print("${event.latitude}, ${event.longitude}");
     });
@@ -160,12 +149,10 @@ class _MapsScreenState extends State<MapsScreen> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.userId != widget.userId) {
-      FirebaseFirestore.instance
-          .collection('parties')
-          .doc(widget.partyNumber)
-          .collection('people')
-          .doc(oldWidget.userId)
-          .delete();
+      widget.deletePersonFromPartyUseCase(
+        widget.party,
+        oldWidget.userId,
+      );
     }
   }
 
@@ -179,12 +166,10 @@ class _MapsScreenState extends State<MapsScreen> {
       documentSubscription.cancel();
     }
 
-    FirebaseFirestore.instance
-        .collection('parties')
-        .doc(widget.partyNumber)
-        .collection('people')
-        .doc(widget.userId)
-        .delete();
+    widget.deletePersonFromPartyUseCase(
+      widget.party,
+      widget.userId,
+    );
   }
 
   @override
@@ -215,7 +200,7 @@ class _MapsScreenState extends State<MapsScreen> {
         100,
         100,
         person.name,
-        color: person.isMe ? Colors.red : Colors.blue,
+        color: person.id == widget.userId ? Colors.red : Colors.blue,
       );
       var bitmapDescriptor = BitmapDescriptor.fromBytes(bitmapData);
 
@@ -228,10 +213,10 @@ class _MapsScreenState extends State<MapsScreen> {
       newMarkers.add(marker);
     });
 
-    if (target != null) {
+    if (widget.party.target != null) {
       newMarkers.add(Marker(
         markerId: MarkerId("target"),
-        position: target,
+        position: widget.party.target,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       ));
     }

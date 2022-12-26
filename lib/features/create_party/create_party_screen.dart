@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:see_you_here_app/features/create_party/repository/target_repository.dart';
 import 'package:see_you_here_app/features/create_party/usecase/create_markers_use_case.dart';
 import 'package:see_you_here_app/features/create_party/usecase/create_party_use_case.dart';
+import 'package:see_you_here_app/parties/parties_repository.dart';
 
 import '../maps/maps_screen.dart';
 
@@ -15,7 +16,7 @@ class CreatePartyScreen extends StatefulWidget {
         userId: userId,
         repository: repository,
         createMarkersUseCase: CreateMarkersUseCase(repository),
-        createPartyUseCase: CreatePartyUseCase(repository),
+        createPartyUseCase: CreatePartyUseCase(repository, PartiesRepository()),
       ),
     );
   }

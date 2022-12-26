@@ -1,24 +1,19 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:see_you_here_app/features/create_party/repository/target_repository.dart';
+import 'package:see_you_here_app/parties/parties_repository.dart';
+import 'package:see_you_here_app/parties/party.dart';
 
 class CreatePartyUseCase {
   final TargetRepository repository;
+  final PartiesRepository partiesRepository;
 
-  CreatePartyUseCase(this.repository);
+  CreatePartyUseCase(this.repository, this.partiesRepository);
 
-  Future<String> call(String userId) async {
+  Future<Party> call(String userId) async {
     var target = repository.getTarget();
     var partyNumber = _calculatePartyNumber(userId, target);
 
-    // Crear el party
-    await FirebaseFirestore.instance.collection('parties').doc(partyNumber).set(
-      {
-        "target": GeoPoint(target.latitude, target.longitude),
-      },
-    );
-
-    return partyNumber;
+    return await partiesRepository.create(partyNumber, target);
   }
 
   String _calculatePartyNumber(String userId, LatLng target) {
